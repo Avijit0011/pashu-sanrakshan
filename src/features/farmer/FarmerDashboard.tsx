@@ -20,6 +20,9 @@ import {
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 
+import { AIAssessmentModal } from '../ai/components/AIAssessmentModal';
+import { Cpu } from 'lucide-react';
+
 const SPECIES_EMOJI: Record<string, string> = {
   Cow: '🐄',
   Buffalo: '🦬',
@@ -36,6 +39,7 @@ export const FarmerDashboard: React.FC = () => {
   const [reports, setReports] = useState<DiseaseReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddAnimalOpen, setIsAddAnimalOpen] = useState(false);
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
 
   useEffect(() => {
     const loadDashboardData = async () => {
@@ -100,14 +104,23 @@ export const FarmerDashboard: React.FC = () => {
             </p>
           </div>
 
-          {/* Primary Action Button */}
-          <Link
-            to="/farmer/reports/new"
-            className="px-6 py-4 bg-white text-emerald-950 hover:bg-emerald-50 rounded-2xl font-black text-base shadow-xl hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-2 shrink-0 group border-2 border-white/20"
-          >
-            <PlusCircle className="w-6 h-6 text-emerald-600 group-hover:rotate-90 transition-transform duration-300" />
-            Report Sick Animal
-          </Link>
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsAiModalOpen(true)}
+              className="px-5 py-3.5 bg-emerald-500/20 border border-emerald-300/40 hover:bg-emerald-500/30 text-white rounded-2xl font-bold text-sm shadow-lg backdrop-blur-md flex items-center gap-2 transition"
+            >
+              <Cpu className="w-5 h-5 text-emerald-300" />
+              AI Disease Screener
+            </button>
+            <Link
+              to="/farmer/reports/new"
+              className="px-6 py-4 bg-white text-emerald-950 hover:bg-emerald-50 rounded-2xl font-black text-base shadow-xl hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-2 shrink-0 group border-2 border-white/20"
+            >
+              <PlusCircle className="w-6 h-6 text-emerald-600 group-hover:rotate-90 transition-transform duration-300" />
+              Report Sick Animal
+            </Link>
+          </div>
         </div>
       </div>
 
@@ -381,7 +394,16 @@ export const FarmerDashboard: React.FC = () => {
       <AddAnimalModal
         isOpen={isAddAnimalOpen}
         onClose={() => setIsAddAnimalOpen(false)}
-        onAnimalAdded={(animal) => setAnimals((prev) => [...prev, animal])}
+        onSuccess={() => {
+          // Refresh animal list
+          api.get('/animals').then((res) => setAnimals(res.data || []));
+        }}
+      />
+
+      {/* AI Multi-Modal Health Screening Modal */}
+      <AIAssessmentModal
+        isOpen={isAiModalOpen}
+        onClose={() => setIsAiModalOpen(false)}
       />
     </div>
   );
