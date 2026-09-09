@@ -1,0 +1,298 @@
+import React, { useState, useEffect } from 'react';
+import { DiseaseReport, Animal } from '@/types';
+import { api } from '@/core/api/axiosInstance';
+import { db } from '@/core/storage/dexieDb';
+import { useAuth } from '@/core/auth/AuthContext';
+import { useSyncStore } from '@/core/offline/syncManager';
+import { StatusBadge } from '@/components/ui/StatusBadge';
+import { RiskLevelBadge } from '@/components/ui/RiskLevelBadge';
+import { AddAnimalModal } from './AddAnimalModal';
+import {
+  PlusCircle,
+  Activity,
+  AlertCircle,
+  ShieldCheck,
+  RefreshCw,
+  Plus,
+  ChevronRight,
+  Sparkles,
+} from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+
+export const FarmerDashboard: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const { pendingCount, isSyncing, syncNow } = useSyncStore();
+
+  const [animals, setAnimals] = useState<Animal[]>([]);
+  const [reports, setReports] = useState<DiseaseReport[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isAddAnimalOpen, setIsAddAnimalOpen] = useState(false);
+
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      setLoading(true);
+      try {
+        const [animalsRes, reportsRes] = await Promise.all([
+          api.get('/animals'),
+          api.get('/reports'),
+        ]);
+
+        let fetchedAnimals = animalsRes.data || [];
+        let fetchedReports = reportsRes.data || [];
+
+        // Combine with Dexie offline records if present
+        const offlineReps = await db.offlineReports.toArray();
+        const offlineAnims = await db.offlineAnimals.toArray();
+
+        if (offlineAnims.length > 0) {
+          fetchedAnimals = [...fetchedAnimals, ...offlineAnims];
+        }
+        if (offlineReps.length > 0) {
+          fetchedReports = [...offlineReps, ...fetchedReports];
+        }
+
+        setAnimals(fetchedAnimals);
+        setReports(fetchedReports);
+      } catch (err) {
+        // Load from Dexie completely if offline
+        const offlineReps = await db.offlineReports.toArray();
+        const offlineAnims = await db.offlineAnimals.toArray();
+
+        setAnimals(offlineAnims as Animal[]);
+        setReports(offlineReps as DiseaseReport[]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, []);
+
+  const highRiskCount = reports.filter(
+    (r) => r.risk_level === 'HIGH' || r.risk_level === 'CRITICAL'
+  ).length;
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 pb-24">
+      {/* Welcome Banner */}
+      <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden">
+        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/10 rounded-full blur-2xl pointer-events-none" />
+
+        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 text-emerald-100 text-xs font-bold backdrop-blur-md">
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" /> Farmer Health Portal
+            </span>
+            <h1 className="text-2xl sm:text-4xl font-black tracking-tight">
+              Welcome back, {user?.name.split(' ')[0]}!
+            </h1>
+            <p className="text-xs sm:text-sm text-emerald-100/90 max-w-xl">
+              Monitor livestock health, perform AI disease screening, and alert regional veterinary officers.
+            </p>
+          </div>
+
+          {/* Primary Action Button */}
+          <Link
+            to="/farmer/reports/new"
+            className="px-6 py-4 bg-white text-emerald-950 hover:bg-emerald-50 rounded-2xl font-black text-base shadow-xl hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center gap-2 shrink-0 group border-2 border-white/20"
+          >
+            <PlusCircle className="w-6 h-6 text-emerald-600 group-hover:rotate-90 transition-transform duration-300" />
+            Report Sick Animal
+          </Link>
+        </div>
+      </div>
+
+      {/* Summary KPI Cards Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Animals */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-bold uppercase tracking-wider">Total Animals</span>
+            <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+              <Activity className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-3xl font-black text-slate-900 font-mono">{animals.length}</div>
+          <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100">
+            <span className="text-slate-500">Registered on farm</span>
+            <button
+              onClick={() => setIsAddAnimalOpen(true)}
+              className="text-emerald-700 font-bold hover:underline flex items-center gap-0.5"
+            >
+              <Plus className="w-3 h-3" /> Add
+            </button>
+          </div>
+        </div>
+
+        {/* Active Reports */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-bold uppercase tracking-wider">Active Reports</span>
+            <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center">
+              <AlertCircle className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-3xl font-black text-slate-900 font-mono">{reports.length}</div>
+          <div className="text-xs text-slate-500 pt-2 border-t border-slate-100">
+            Submitted surveillance cases
+          </div>
+        </div>
+
+        {/* High Risk Alerts */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-bold uppercase tracking-wider">High Risk Alerts</span>
+            <div className="w-8 h-8 rounded-xl bg-red-50 text-red-700 flex items-center justify-center">
+              <AlertCircle className="w-4 h-4" />
+            </div>
+          </div>
+          <div className="text-3xl font-black text-red-600 font-mono">{highRiskCount}</div>
+          <div className="text-xs text-red-700 font-semibold pt-2 border-t border-slate-100">
+            {highRiskCount > 0 ? 'Requires Vet Inspection' : 'No Critical Alerts'}
+          </div>
+        </div>
+
+        {/* Offline Sync Status */}
+        <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-2">
+          <div className="flex items-center justify-between text-slate-500">
+            <span className="text-xs font-bold uppercase tracking-wider">Sync Status</span>
+            <div
+              className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                pendingCount > 0 ? 'bg-orange-50 text-orange-700' : 'bg-emerald-50 text-emerald-700'
+              }`}
+            >
+              <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+            </div>
+          </div>
+          <div className="text-2xl font-black text-slate-900 font-mono">
+            {pendingCount > 0 ? `${pendingCount} Pending` : 'All Synced'}
+          </div>
+          <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100">
+            <span className="text-slate-500">IndexedDB Storage</span>
+            {pendingCount > 0 && (
+              <button
+                onClick={() => syncNow()}
+                disabled={isSyncing}
+                className="text-orange-700 font-bold hover:underline"
+              >
+                Sync Now
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Action Tiles */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Link
+          to="/farmer/reports/new"
+          className="bg-gradient-to-br from-emerald-500 to-teal-600 p-6 rounded-3xl text-white shadow-md hover:shadow-xl transition-all group flex items-center justify-between"
+        >
+          <div className="space-y-1">
+            <span className="text-xs font-bold text-emerald-100 uppercase tracking-wider">Quick Action</span>
+            <h3 className="text-xl font-extrabold">Report Sick Animal</h3>
+            <p className="text-xs text-emerald-100 max-w-xs">
+              Select symptoms, upload photo, and run instant AI risk screening.
+            </p>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-white/20 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+            <PlusCircle className="w-7 h-7 stroke-[2.5]" />
+          </div>
+        </Link>
+
+        <Link
+          to="/farmer/animals"
+          className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm hover:shadow-md transition-all group flex items-center justify-between"
+        >
+          <div className="space-y-1">
+            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">Management</span>
+            <h3 className="text-xl font-extrabold text-slate-900">Manage Farm Animals</h3>
+            <p className="text-xs text-slate-500 max-w-xs">
+              Register cattle, buffaloes, goats, or sheep to your farm inventory.
+            </p>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center group-hover:scale-110 transition-transform shrink-0">
+            <Activity className="w-7 h-7 stroke-[2.5]" />
+          </div>
+        </Link>
+      </div>
+
+      {/* Recent Health Reports */}
+      <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div>
+            <h3 className="text-lg font-extrabold text-slate-900">Recent Health Reports</h3>
+            <p className="text-xs text-slate-500">Live surveillance timeline & AI screening scores</p>
+          </div>
+          <Link
+            to="/farmer/reports/new"
+            className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
+          >
+            + New Report
+          </Link>
+        </div>
+
+        {reports.length === 0 ? (
+          <div className="py-12 text-center text-slate-400 space-y-2">
+            <ShieldCheck className="w-12 h-12 text-emerald-500 mx-auto opacity-40" />
+            <p className="text-sm font-semibold text-slate-600">No health reports submitted yet.</p>
+            <p className="text-xs">Click "Report Sick Animal" to start early disease screening.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {reports.slice(0, 5).map((report) => (
+              <div
+                key={report.id}
+                className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50/60 p-3 rounded-2xl transition-colors"
+              >
+                <div className="flex items-start gap-3">
+                  {report.image_url ? (
+                    <img
+                      src={report.image_url}
+                      alt="Symptom preview"
+                      className="w-14 h-14 rounded-xl object-cover border border-slate-200 shrink-0"
+                    />
+                  ) : (
+                    <div className="w-14 h-14 rounded-xl bg-slate-100 flex items-center justify-center text-slate-400 shrink-0 font-extrabold text-xs">
+                      {report.animal?.species || 'COW'}
+                    </div>
+                  )}
+
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-extrabold text-slate-900">
+                        {report.animal?.animal_identifier || 'Animal'} ({report.animal?.species})
+                      </span>
+                      <RiskLevelBadge level={report.risk_level} score={report.risk_score} size="sm" />
+                    </div>
+                    <p className="text-xs text-slate-600 line-clamp-1">
+                      <strong>Symptoms:</strong> {report.symptoms.join(', ')}
+                    </p>
+                    <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                      <span>{new Date(report.created_at).toLocaleDateString()}</span>
+                      <span>•</span>
+                      <span>{report.affected_count} affected</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0">
+                  <StatusBadge status={report.status} />
+                  <ChevronRight className="w-5 h-5 text-slate-300" />
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Add Animal Modal */}
+      <AddAnimalModal
+        isOpen={isAddAnimalOpen}
+        onClose={() => setIsAddAnimalOpen(false)}
+        onAnimalAdded={(animal) => setAnimals((prev) => [...prev, animal])}
+      />
+    </div>
+  );
+};

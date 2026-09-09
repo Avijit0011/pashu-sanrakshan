@@ -1,0 +1,44 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Vite Build Output
+dist/
+dist-ssr/
+*.local
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Flutter / Dart
+pashumitra_mobile/.dart_tool/
+pashumitra_mobile/.idea/
+pashumitra_mobile/.pub-cache/
+pashumitra_mobile/.pub/
+pashumitra_mobile/build/
+
+# Server
+server/node_modules/
+server/dist/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
