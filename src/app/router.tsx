@@ -1,21 +1,21 @@
 import React from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '@/core/auth/AuthContext';
-import { Navbar } from '@/components/layout/Navbar';
-import { OfflineBanner } from '@/components/layout/OfflineBanner';
-import { BottomNav } from '@/components/layout/BottomNav';
+import { useAuth } from '../core/auth/AuthContext';
+import { Navbar } from '../components/layout/Navbar';
+import { OfflineBanner } from '../components/layout/OfflineBanner';
+import { BottomNav } from '../components/layout/BottomNav';
 
 // Pages
-import { LoginPage } from '@/features/auth/LoginPage';
-import { RegisterPage } from '@/features/auth/RegisterPage';
+import { LoginPage } from '../features/auth/LoginPage';
+import { RegisterPage } from '../features/auth/RegisterPage';
 
-import { FarmerDashboard } from '@/features/farmer/FarmerDashboard';
-import { AnimalsList } from '@/features/farmer/AnimalsList';
-import { NewReportStepper } from '@/features/farmer/NewReportStepper';
+import { FarmerDashboard } from '../features/farmer/FarmerDashboard';
+import { AnimalsList } from '../features/farmer/AnimalsList';
+import { NewReportStepper } from '../features/farmer/NewReportStepper';
 
-import { VetDashboard } from '@/features/veterinary/VetDashboard';
-import { GISMapPage } from '@/features/veterinary/GISMapPage';
-import { CaseDetailPage } from '@/features/veterinary/CaseDetailPage';
+import { VetDashboard } from '../features/veterinary/VetDashboard';
+import { GISMapPage } from '../features/veterinary/GISMapPage';
+import { CaseDetailPage } from '../features/veterinary/CaseDetailPage';
 
 // Protected Layout with Navbar, Offline Banner & Bottom Navigation
 const ProtectedLayout: React.FC = () => {
