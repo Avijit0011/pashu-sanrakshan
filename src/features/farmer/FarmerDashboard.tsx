@@ -16,8 +16,16 @@ import {
   Plus,
   ChevronRight,
   Sparkles,
+  Stethoscope,
 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+
+const SPECIES_EMOJI: Record<string, string> = {
+  Cow: '🐄',
+  Buffalo: '🦬',
+  Goat: '🐐',
+  Sheep: '🐑',
+};
 
 export const FarmerDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -108,19 +116,19 @@ export const FarmerDashboard: React.FC = () => {
         {/* Total Animals */}
         <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Total Animals</span>
+            <span className="text-xs font-bold uppercase tracking-wider">Registered Animals</span>
             <div className="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
               <Activity className="w-4 h-4" />
             </div>
           </div>
           <div className="text-3xl font-black text-slate-900 font-mono">{animals.length}</div>
           <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100">
-            <span className="text-slate-500">Registered on farm</span>
+            <span className="text-slate-500">On Farm Inventory</span>
             <button
               onClick={() => setIsAddAnimalOpen(true)}
               className="text-emerald-700 font-bold hover:underline flex items-center gap-0.5"
             >
-              <Plus className="w-3 h-3" /> Add
+              <Plus className="w-3 h-3" /> Add Animal
             </button>
           </div>
         </div>
@@ -181,6 +189,88 @@ export const FarmerDashboard: React.FC = () => {
             )}
           </div>
         </div>
+      </div>
+
+      {/* REGISTERED ANIMALS ON DASHBOARD SECTION */}
+      <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm space-y-4">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+          <div>
+            <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+              <Activity className="w-5 h-5 text-emerald-600" />
+              Registered Farm Animals
+            </h3>
+            <p className="text-xs text-slate-500">Your registered livestock inventory available for disease reporting</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsAddAnimalOpen(true)}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center gap-1"
+            >
+              <Plus className="w-4 h-4" /> Add Animal
+            </button>
+            <Link
+              to="/farmer/animals"
+              className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-0.5"
+            >
+              View All ({animals.length}) <ChevronRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </div>
+
+        {animals.length === 0 ? (
+          <div className="py-8 text-center text-slate-400 space-y-2 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200">
+            <Activity className="w-10 h-10 text-slate-300 mx-auto" />
+            <p className="text-sm font-semibold text-slate-700">No animals registered yet.</p>
+            <p className="text-xs text-slate-500">Add your cows, buffaloes, goats, or sheep to start health tracking.</p>
+            <button
+              onClick={() => setIsAddAnimalOpen(true)}
+              className="mt-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-xs inline-flex items-center gap-1.5 shadow-sm"
+            >
+              <Plus className="w-4 h-4" /> Register Animal Now
+            </button>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            {animals.slice(0, 4).map((animal) => (
+              <div
+                key={animal.id}
+                className="p-4 rounded-2xl border border-slate-200 hover:border-emerald-500 bg-slate-50/40 hover:bg-emerald-50/20 transition-all space-y-3 relative group"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <span className="text-2xl">{SPECIES_EMOJI[animal.species] || '🐄'}</span>
+                    <div>
+                      <span className="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider block">
+                        {animal.species}
+                      </span>
+                      <h4 className="text-sm font-black text-slate-900 leading-tight">
+                        {animal.animal_identifier}
+                      </h4>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-1 text-[11px] bg-white p-2 rounded-xl border border-slate-100 font-medium">
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase">Breed</span>
+                    <span className="font-bold text-slate-800 truncate block">{animal.breed || 'Desi'}</span>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 block text-[9px] uppercase">Age & Sex</span>
+                    <span className="font-bold text-slate-800">{animal.age} yrs ({animal.sex.charAt(0)})</span>
+                  </div>
+                </div>
+
+                <Link
+                  to="/farmer/reports/new"
+                  className="w-full py-1.5 bg-emerald-100 hover:bg-emerald-200 text-emerald-900 rounded-xl font-bold text-xs transition-colors flex items-center justify-center gap-1"
+                >
+                  <Stethoscope className="w-3.5 h-3.5" /> Report Sickness
+                </Link>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Quick Action Tiles */}
