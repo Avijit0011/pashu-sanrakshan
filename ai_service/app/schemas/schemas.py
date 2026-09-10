@@ -98,6 +98,18 @@ class OverallAssessment(BaseModel):
     risk_level: str = Field(..., description="LOW, MEDIUM, HIGH, CRITICAL")
     confidence: float = Field(..., ge=0.0, le=1.0)
 
+class DiagnosticItem(BaseModel):
+    test_name: str
+    category: str
+    description: str
+    priority: str = "HIGH"
+
+class DoctorUrgency(BaseModel):
+    level: str
+    timeframe: str
+    description: str
+    warning_signs: List[str] = Field(default_factory=list)
+
 class FullAssessmentResponse(BaseModel):
     assessment_id: str
     timestamp: str
@@ -108,10 +120,14 @@ class FullAssessmentResponse(BaseModel):
     geographic_analysis: OutbreakRiskResponse
     overall_assessment: OverallAssessment
     possible_conditions: List[ConditionPrediction]
+    recommended_diagnostics: Optional[List[DiagnosticItem]] = Field(default_factory=list)
+    doctor_urgency: Optional[DoctorUrgency] = None
+    clinical_judgement: Optional[str] = None
     recommended_action: str
     urgent: bool
     reason_codes: List[str]
     disclaimer: str
+
 
 class ModelInfoResponse(BaseModel):
     service_name: str = "PashuMitra AI Multi-Modal Decision Support Microservice"

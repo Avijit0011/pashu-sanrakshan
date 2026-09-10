@@ -7,13 +7,15 @@ import { X, Plus, AlertCircle } from 'lucide-react';
 interface AddAnimalModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAnimalAdded: (animal: Animal) => void;
+  onAnimalAdded?: (animal: Animal) => void;
+  onSuccess?: () => void;
 }
 
 export const AddAnimalModal: React.FC<AddAnimalModalProps> = ({
   isOpen,
   onClose,
   onAnimalAdded,
+  onSuccess,
 }) => {
   const [animalIdentifier, setAnimalIdentifier] = useState('');
   const [species, setSpecies] = useState<AnimalSpecies>('Cow');
@@ -40,11 +42,11 @@ export const AddAnimalModal: React.FC<AddAnimalModalProps> = ({
     setError(null);
 
     const newAnimal: Animal = {
-      id: `animal-${Date.now()}`,
+      id: `anim-${Date.now()}`,
       owner_id: 'farmer-demo-001',
       animal_identifier: animalIdentifier.trim(),
       species,
-      breed: breed.trim() || 'Desi / Local',
+      breed: breed.trim() || 'Desi Local',
       age: Number(age),
       sex,
       created_at: new Date().toISOString(),
@@ -53,7 +55,8 @@ export const AddAnimalModal: React.FC<AddAnimalModalProps> = ({
     try {
       const res = await api.post('/animals', newAnimal);
       const saved = res.data || newAnimal;
-      onAnimalAdded(saved);
+      if (onAnimalAdded) onAnimalAdded(saved);
+      if (onSuccess) onSuccess();
       onClose();
     } catch (err: any) {
       // Fallback save to IndexedDB offline
@@ -62,7 +65,8 @@ export const AddAnimalModal: React.FC<AddAnimalModalProps> = ({
         local_id: newAnimal.id,
         sync_status: 'PENDING_SYNC',
       });
-      onAnimalAdded(newAnimal);
+      if (onAnimalAdded) onAnimalAdded(newAnimal);
+      if (onSuccess) onSuccess();
       onClose();
     } finally {
       setLoading(false);

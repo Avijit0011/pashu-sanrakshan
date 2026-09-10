@@ -42,11 +42,36 @@ export interface RiskFactor {
   weight: number;
 }
 
+export interface ConditionPrediction {
+  condition: string;
+  probability: number;
+  severity_level?: 'LOW' | 'MODERATE' | 'HIGH' | 'CRITICAL';
+  description?: string;
+}
+
+export interface DiagnosticItem {
+  test_name: string;
+  category: 'LAB_PCR' | 'CLINICAL_EXAM' | 'BIOPSY_HISTOPATH' | 'BLOOD_WORK' | 'SWAB_CULTURE';
+  description: string;
+  priority: 'HIGH' | 'MEDIUM' | 'ROUTINE';
+}
+
+export interface DoctorUrgency {
+  level: 'IMMEDIATE_EMERGENCY' | 'HIGH_PRIORITY' | 'MODERATE' | 'ROUTINE';
+  timeframe: string; // e.g. "Within 2 - 4 Hours", "Within 24 Hours", "Within 48 Hours"
+  description: string;
+  warning_signs: string[];
+}
+
 export interface AIScreeningResult {
   risk_score: number; // 0 - 100
   risk_level: RiskLevel;
   screening_status: CaseStatus;
   contributing_factors: string[];
+  probable_conditions?: ConditionPrediction[];
+  recommended_diagnostics?: DiagnosticItem[];
+  doctor_urgency?: DoctorUrgency;
+  clinical_judgement?: string;
   disclaimer: string;
   screened_at: string;
 }
@@ -68,6 +93,10 @@ export interface DiseaseReport {
   risk_score: number;
   risk_level: RiskLevel;
   contributing_factors?: string[];
+  probable_conditions?: ConditionPrediction[];
+  recommended_diagnostics?: DiagnosticItem[];
+  doctor_urgency?: DoctorUrgency;
+  clinical_judgement?: string;
   status: CaseStatus;
   created_at: string;
   sync_status?: SyncStatus;
@@ -119,3 +148,4 @@ export interface MapFilters {
   status?: CaseStatus | 'ALL';
   searchQuery?: string;
 }
+

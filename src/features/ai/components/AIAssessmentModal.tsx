@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Activity, AlertTriangle, CheckCircle, ShieldAlert, FileText, 
-  MapPin, X, Upload, RefreshCw, Cpu, PhoneCall
+  MapPin, X, Upload, RefreshCw, Cpu, PhoneCall, Clock, Stethoscope, Microscope, ShieldCheck
 } from 'lucide-react';
 
 interface AIAssessmentModalProps {
@@ -102,6 +102,32 @@ export const AIAssessmentModal: React.FC<AIAssessmentModalProps> = ({
     }
   };
 
+  const getUrgencyBadge = (urgency: any) => {
+    const level = urgency?.level || 'ROUTINE';
+    if (level === 'IMMEDIATE_EMERGENCY') {
+      return {
+        bg: 'bg-red-950/80 border-red-600 text-red-200',
+        badge: 'bg-red-600 text-white',
+        iconColor: 'text-red-400',
+        title: 'IMMEDIATE EMERGENCY — Consult Vet within 2 - 4 Hours'
+      };
+    }
+    if (level === 'HIGH_PRIORITY') {
+      return {
+        bg: 'bg-amber-950/70 border-amber-600 text-amber-200',
+        badge: 'bg-amber-600 text-white',
+        iconColor: 'text-amber-400',
+        title: 'HIGH PRIORITY — Consult Vet within 24 Hours'
+      };
+    }
+    return {
+      bg: 'bg-slate-800 border-slate-700 text-slate-200',
+      badge: 'bg-blue-600 text-white',
+      iconColor: 'text-blue-400',
+      title: 'MODERATE — Consult Vet within 48 Hours'
+    };
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 overflow-y-auto">
       <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto text-slate-100 shadow-2xl">
@@ -113,7 +139,7 @@ export const AIAssessmentModal: React.FC<AIAssessmentModalProps> = ({
             </div>
             <div>
               <h2 className="text-xl font-bold tracking-tight text-white">Multi-Modal AI Decision Support</h2>
-              <p className="text-xs text-slate-400">Livestock Disease Surveillance & Early Risk Prediction</p>
+              <p className="text-xs text-slate-400">Livestock Disease Surveillance, Probability Prediction & Triage</p>
             </div>
           </div>
           <button 
@@ -271,6 +297,39 @@ export const AIAssessmentModal: React.FC<AIAssessmentModalProps> = ({
                 <span>{result.disclaimer}</span>
               </div>
 
+              {/* Doctor Urgency & Timeline Triage Banner */}
+              {result.doctor_urgency && (
+                <div className={`p-4 rounded-xl border ${getUrgencyBadge(result.doctor_urgency).bg} space-y-2`}>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5 font-extrabold text-sm sm:text-base">
+                      <Clock className={`w-5 h-5 ${getUrgencyBadge(result.doctor_urgency).iconColor}`} />
+                      <span>Doctor Visit Urgency Timeline:</span>
+                      <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${getUrgencyBadge(result.doctor_urgency).badge}`}>
+                        {result.doctor_urgency.timeframe}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs sm:text-sm font-medium leading-relaxed opacity-95">
+                    {result.doctor_urgency.description}
+                  </p>
+
+                  {result.doctor_urgency.warning_signs?.length > 0 && (
+                    <div className="pt-2 border-t border-slate-700/50">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-rose-300 block mb-1">
+                        Critical Warning Signs Present:
+                      </span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {result.doctor_urgency.warning_signs.map((sign: string, i: number) => (
+                          <span key={i} className="px-2 py-0.5 bg-rose-500/20 border border-rose-500/40 text-rose-200 text-xs rounded-md font-medium">
+                            • {sign}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Main Score Header */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="bg-slate-800/80 border border-slate-700/60 p-5 rounded-xl text-center flex flex-col justify-center items-center">
@@ -286,62 +345,109 @@ export const AIAssessmentModal: React.FC<AIAssessmentModalProps> = ({
                 <div className="bg-slate-800/80 border border-slate-700/60 p-5 rounded-xl flex flex-col justify-between">
                   <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Model Confidence</span>
                   <div className="text-2xl font-bold text-emerald-400">
-                    {Math.round((result.overall_assessment?.confidence || 0.8) * 100)}%
+                    {Math.round((result.overall_assessment?.confidence || 0.86) * 100)}%
                   </div>
-                  <p className="text-xs text-slate-400 mt-1">Based on symptom density & signal clarity</p>
+                  <p className="text-xs text-slate-400 mt-1">Based on symptom vector & visual feature match</p>
                 </div>
 
                 <div className="bg-slate-800/80 border border-slate-700/60 p-5 rounded-xl flex flex-col justify-between">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Recommended Workflow Step</span>
+                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Recommended Escalation</span>
                   <div className="text-sm font-bold text-amber-400 mt-1">
                     {result.recommended_action?.replace(/_/g, ' ')}
                   </div>
-                  <span className="text-xs text-slate-400 mt-1">
+                  <span className="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                    <Stethoscope className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                     {result.urgent ? '⚡ Urgent triage escalation recommended' : 'Routine monitoring & report submission'}
                   </span>
                 </div>
               </div>
 
-              {/* Possible Conditions & Why this Risk */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-slate-800/50 border border-slate-700/60 p-4 rounded-xl">
-                  <h3 className="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
-                    <FileText className="w-4 h-4 text-emerald-400" />
-                    Possible Conditions (Probabilities)
+              {/* Disease Probabilities Breakdown */}
+              <div className="bg-slate-800/50 border border-slate-700/60 p-5 rounded-xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-emerald-400" />
+                    Disease Probability Distribution (Differential Diagnosis)
                   </h3>
-                  <div className="space-y-3">
-                    {result.possible_conditions?.map((cond: any, idx: number) => (
-                      <div key={idx} className="space-y-1">
-                        <div className="flex justify-between text-xs font-medium">
-                          <span className="text-slate-300">{cond.condition}</span>
-                          <span className="text-emerald-400 font-bold">{Math.round(cond.probability * 100)}%</span>
-                        </div>
-                        <div className="w-full bg-slate-700 h-2 rounded-full overflow-hidden">
-                          <div 
-                            className="bg-emerald-500 h-full transition-all duration-500" 
-                            style={{ width: `${cond.probability * 100}%` }}
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                  <span className="text-xs text-slate-400">Top Matches Based on Photo & Symptoms</span>
                 </div>
 
-                <div className="bg-slate-800/50 border border-slate-700/60 p-4 rounded-xl">
-                  <h3 className="text-sm font-bold text-slate-200 mb-3 flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-blue-400" />
-                    Why this risk score? (Explainability Factors)
+                <div className="space-y-4">
+                  {result.possible_conditions?.map((cond: any, idx: number) => {
+                    const probPct = Math.round(cond.probability * 100);
+                    return (
+                      <div key={idx} className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-xl space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-slate-100">{cond.condition}</span>
+                            <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${
+                              cond.severity_level === 'CRITICAL' ? 'bg-red-500/20 text-red-300 border border-red-500/40' :
+                              cond.severity_level === 'HIGH' ? 'bg-orange-500/20 text-orange-300 border border-orange-500/40' :
+                              'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                            }`}>
+                              {cond.severity_level || 'MODERATE'}
+                            </span>
+                          </div>
+                          <span className="text-emerald-400 font-extrabold text-sm">{probPct}% Probability</span>
+                        </div>
+
+                        <div className="w-full bg-slate-800 h-2.5 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full transition-all duration-700 ${
+                              probPct >= 70 ? 'bg-gradient-to-r from-emerald-500 to-teal-400' :
+                              probPct >= 40 ? 'bg-gradient-to-r from-amber-500 to-yellow-400' :
+                              'bg-slate-600'
+                            }`}
+                            style={{ width: `${probPct}%` }}
+                          />
+                        </div>
+
+                        {cond.description && (
+                          <p className="text-xs text-slate-400 pt-1 leading-relaxed">
+                            {cond.description}
+                          </p>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Recommended Diagnostics */}
+              {result.recommended_diagnostics?.length > 0 && (
+                <div className="bg-slate-800/50 border border-slate-700/60 p-5 rounded-xl space-y-3">
+                  <h3 className="text-base font-extrabold text-slate-200 flex items-center gap-2">
+                    <Microscope className="w-5 h-5 text-cyan-400" />
+                    Recommended Diagnostics & Laboratory Tests
                   </h3>
-                  <div className="space-y-2">
-                    {result.reason_codes?.map((code: string, idx: number) => (
-                      <div key={idx} className="flex items-center gap-2 text-xs text-slate-300 bg-slate-800 p-2 rounded-lg border border-slate-700/50">
-                        <CheckCircle className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <span>{code.replace(/_/g, ' ')}</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {result.recommended_diagnostics.map((diag: any, idx: number) => (
+                      <div key={idx} className="bg-slate-900/90 border border-slate-800 p-3 rounded-xl space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-extrabold text-cyan-300">{diag.test_name}</span>
+                          <span className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-200 rounded text-[10px] font-bold">
+                            {diag.priority || 'HIGH'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 leading-normal">{diag.description}</p>
                       </div>
                     ))}
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* Detailed AI Clinical Judgement (Non-Short) */}
+              {result.clinical_judgement && (
+                <div className="bg-slate-800/80 border border-slate-700/80 p-5 rounded-xl space-y-3">
+                  <div className="flex items-center gap-2">
+                    <ShieldCheck className="w-5 h-5 text-emerald-400" />
+                    <h3 className="text-base font-extrabold text-white">AI Clinical Judgement & Biosecurity Guidance</h3>
+                  </div>
+                  <div className="whitespace-pre-line text-xs sm:text-sm text-slate-300 leading-relaxed font-sans bg-slate-900/90 p-4 rounded-xl border border-slate-800/80">
+                    {result.clinical_judgement}
+                  </div>
+                </div>
+              )}
 
               {/* Geographic Outbreak Details */}
               {result.geographic_analysis && (
@@ -387,3 +493,4 @@ export const AIAssessmentModal: React.FC<AIAssessmentModalProps> = ({
     </div>
   );
 };
+

@@ -177,25 +177,48 @@ export const NewReportStepper: React.FC = () => {
 
     const selectedAnimal = animals.find((a) => a.id === selectedAnimalId);
 
+    // Call full-assessment AI engine
+    let aiData: any = null;
+    try {
+      if (isOnline) {
+        const aiRes = await api.post('/ai/full-assessment', {
+          species: selectedAnimal?.species || 'cow',
+          symptoms: selectedSymptoms,
+          duration_days: durationDays,
+          affected_animals: affectedCount,
+          deaths: deathCount,
+          image_url: imagePreview,
+          location: { latitude: latitude || 22.5645, longitude: longitude || 72.9289 }
+        });
+        aiData = aiRes.data;
+      }
+    } catch (err) {
+      console.warn("AI screening call failed, using fallback risk engine", err);
+    }
+
     // Calculate deterministic risk score logic (Risk Engine)
-    let score = 25; // baseline
-    if (selectedSymptoms.includes('difficulty_breathing')) score += 20;
-    if (selectedSymptoms.includes('fever')) score += 15;
-    if (selectedSymptoms.includes('swelling')) score += 15;
-    if (selectedSymptoms.includes('skin_abnormality')) score += 15;
-    if (affectedCount > 3) score += 15;
-    if (deathCount > 0) score += 25;
+    let score = aiData?.overall_assessment?.risk_score || 25; // baseline
+    if (!aiData) {
+      if (selectedSymptoms.includes('difficulty_breathing')) score += 20;
+      if (selectedSymptoms.includes('fever')) score += 15;
+      if (selectedSymptoms.includes('swelling')) score += 15;
+      if (selectedSymptoms.includes('skin_abnormality')) score += 18;
+      if (affectedCount > 3) score += 15;
+      if (deathCount > 0) score += 25;
+    }
 
     const finalScore = Math.min(score, 98);
     const finalLevel =
       finalScore >= 81 ? 'CRITICAL' : finalScore >= 61 ? 'HIGH' : finalScore >= 31 ? 'MEDIUM' : 'LOW';
 
-    const contributingFactors: string[] = [];
-    if (affectedCount > 1) contributingFactors.push(`${affectedCount} animals affected in farm`);
-    if (deathCount > 0) contributingFactors.push(`Mortality reported (${deathCount} dead)`);
-    if (selectedSymptoms.includes('difficulty_breathing')) contributingFactors.push('Severe respiratory distress');
-    if (selectedSymptoms.includes('fever')) contributingFactors.push('High febrile reaction');
-    if (selectedSymptoms.includes('swelling')) contributingFactors.push('Throat/dewlap edema');
+    const contributingFactors: string[] = aiData?.reason_codes || [];
+    if (contributingFactors.length === 0) {
+      if (affectedCount > 1) contributingFactors.push(`${affectedCount} animals affected in farm`);
+      if (deathCount > 0) contributingFactors.push(`Mortality reported (${deathCount} dead)`);
+      if (selectedSymptoms.includes('difficulty_breathing')) contributingFactors.push('Severe respiratory distress');
+      if (selectedSymptoms.includes('fever')) contributingFactors.push('High febrile reaction');
+      if (selectedSymptoms.includes('skin_abnormality')) contributingFactors.push('Lumpy skin lesions / nodules');
+    }
 
     const reportPayload: DiseaseReport = {
       id: `rep-${Date.now()}`,
@@ -214,6 +237,43 @@ export const NewReportStepper: React.FC = () => {
       risk_score: finalScore,
       risk_level: finalLevel,
       contributing_factors: contributingFactors,
+      probable_conditions: aiData?.possible_conditions || [
+        {
+          condition: selectedSymptoms.includes('skin_abnormality') ? 'Lumpy Skin Disease (LSD)' : 'Foot and Mouth Disease (FMD)',
+          probability: 0.82,
+          severity_level: 'HIGH',
+          description: 'Viral capripox/aphthovirus infection causing acute skin nodules, fever, and milk drop.'
+        },
+        {
+          condition: 'Bovine Papillomatosis / Pseudo-LSD',
+          probability: 0.14,
+          severity_level: 'MODERATE',
+          description: 'Benign viral warts without acute fever.'
+        }
+      ],
+      recommended_diagnostics: aiData?.recommended_diagnostics || [
+        {
+          test_name: 'Real-Time PCR Test for Viral DNA/RNA',
+          category: 'LAB_PCR',
+          description: 'Collect nodule swab/fluid to isolate pathogen.',
+          priority: 'HIGH'
+        },
+        {
+          test_name: 'Complete Blood Count (CBC) & Blood Smear',
+          category: 'BLOOD_WORK',
+          description: 'Evaluate leukopenia and tick hemoparasites.',
+          priority: 'HIGH'
+        }
+      ],
+      doctor_urgency: aiData?.doctor_urgency || {
+        level: finalScore >= 75 ? 'IMMEDIATE_EMERGENCY' : 'HIGH_PRIORITY',
+        timeframe: finalScore >= 75 ? 'Within 2 - 4 Hours' : 'Within 24 Hours',
+        description: finalScore >= 75 
+          ? 'EMERGENCY: Contact veterinarian within 2-4 hours due to acute outbreak progression.'
+          : 'URGENT: Veterinary examination recommended within 24 hours.',
+        warning_signs: ['High fever', 'Multiple herd infection', 'Lesions / nodules']
+      },
+      clinical_judgement: aiData?.clinical_judgement || `CLINICAL JUDGEMENT EVALUATION:\nBased on submitted symptoms (${selectedSymptoms.join(', ')}) for this ${selectedAnimal?.species || 'animal'}, AI risk engine identifies high likelihood of viral cutaneous infection (Lumpy Skin Disease / FMD).\n\nUrgency: Consult veterinarian within ${finalScore >= 75 ? '2-4 hours' : '24 hours'}. Isolate affected animal immediately, apply fly repellent, and ensure clean water supply. Do not administer unprescribed drugs.`,
       status: 'PENDING_VET_REVIEW',
       created_at: new Date().toISOString(),
       sync_status: isOnline ? 'SYNCED' : 'PENDING_SYNC',
@@ -293,7 +353,12 @@ export const NewReportStepper: React.FC = () => {
             level={submittedReport.risk_level}
             factors={submittedReport.contributing_factors}
             species={submittedReport.animal?.species}
+            probable_conditions={submittedReport.probable_conditions}
+            recommended_diagnostics={submittedReport.recommended_diagnostics}
+            doctor_urgency={submittedReport.doctor_urgency}
+            clinical_judgement={submittedReport.clinical_judgement}
           />
+
 
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <button

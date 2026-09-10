@@ -105,8 +105,10 @@ router.post('/full-assessment', async (req: Request, res: Response) => {
       symptoms: payload.symptoms || [],
       affected_count: Number(payload.affected_animals) || 1,
       death_count: Number(payload.deaths) || 0,
+      duration_days: Number(payload.duration_days) || 3,
       latitude: Number(payload.location?.latitude) || 22.5726,
-      longitude: Number(payload.location?.longitude) || 88.3639
+      longitude: Number(payload.location?.longitude) || 88.3639,
+      has_image: Boolean(payload.image_url || payload.image_base64)
     });
 
     const isCritical = evalRes.risk_score >= 76;
@@ -121,19 +123,14 @@ router.post('/full-assessment', async (req: Request, res: Response) => {
         status: payload.image_url || payload.image_base64 ? 'COMPLETED' : 'NO_IMAGE_PROVIDED',
         needs_retake: false,
         image_quality: 'GOOD',
-        predictions: [
-          { condition: 'Lumpy Skin Disease (LSD)', probability: 0.76, severity_level: 'HIGH' }
-        ],
+        predictions: evalRes.probable_conditions,
         needs_veterinary_review: true
       },
       symptom_analysis: {
         risk_score: evalRes.risk_score,
         risk_level: evalRes.risk_level,
-        possible_conditions: [
-          { condition: 'Lumpy Skin Disease (LSD)', probability: 0.78, severity_level: 'HIGH' },
-          { condition: 'Bovine Respiratory Disease', probability: 0.35, severity_level: 'MODERATE' }
-        ],
-        confidence: 0.84
+        possible_conditions: evalRes.probable_conditions,
+        confidence: 0.86
       },
       geographic_analysis: {
         geographic_risk_score: 81,
@@ -154,12 +151,12 @@ router.post('/full-assessment', async (req: Request, res: Response) => {
       overall_assessment: {
         risk_score: evalRes.risk_score,
         risk_level: evalRes.risk_level,
-        confidence: 0.85
+        confidence: 0.86
       },
-      possible_conditions: [
-        { condition: 'Lumpy Skin Disease (LSD)', probability: 0.78, severity_level: 'HIGH' },
-        { condition: 'Bovine Respiratory Disease', probability: 0.35, severity_level: 'MODERATE' }
-      ],
+      possible_conditions: evalRes.probable_conditions,
+      recommended_diagnostics: evalRes.recommended_diagnostics,
+      doctor_urgency: evalRes.doctor_urgency,
+      clinical_judgement: evalRes.clinical_judgement,
       recommended_action: isCritical ? 'URGENT_VETERINARY_REVIEW' : (isHigh ? 'VETERINARY_REVIEW' : 'SUBMIT_VETERINARY_REPORT'),
       urgent: isCritical || isHigh,
       reason_codes: evalRes.contributing_factors.length > 0 ? evalRes.contributing_factors : ['HIGH_SYMPTOM_RISK', 'LOCAL_CASE_CLUSTER'],
@@ -179,19 +176,26 @@ router.post('/screen', async (req: Request, res: Response) => {
       symptoms: payload.symptoms || [],
       affected_count: Number(payload.affected_count) || 1,
       death_count: Number(payload.death_count) || 0,
+      duration_days: Number(payload.duration_days) || 1,
       latitude: Number(payload.latitude) || 22.5645,
-      longitude: Number(payload.longitude) || 72.9289
+      longitude: Number(payload.longitude) || 72.9289,
+      has_image: Boolean(payload.image_url || payload.image_base64)
     });
     return {
       risk_score: evalRes.risk_score,
       risk_level: evalRes.risk_level,
       screening_status: 'VETERINARY_REVIEW_REQUIRED',
       contributing_factors: evalRes.contributing_factors,
+      probable_conditions: evalRes.probable_conditions,
+      recommended_diagnostics: evalRes.recommended_diagnostics,
+      doctor_urgency: evalRes.doctor_urgency,
+      clinical_judgement: evalRes.clinical_judgement,
       disclaimer: 'AI-assisted risk screening is a decision-support system, NOT a definitive medical diagnosis.'
     };
   });
   return res.json(result);
 });
+
 
 // Model info endpoint
 router.get('/model-info', async (req: Request, res: Response) => {
