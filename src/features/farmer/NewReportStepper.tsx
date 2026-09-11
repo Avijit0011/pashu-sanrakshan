@@ -20,8 +20,10 @@ import {
   ArrowLeft,
   Activity,
   RefreshCw,
+  Stethoscope,
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/core/auth/AuthContext';
 
 const AVAILABLE_SYMPTOMS = [
   { id: 'fever', label: 'Fever (बुखार)', desc: 'High body temperature' },
@@ -38,6 +40,7 @@ const AVAILABLE_SYMPTOMS = [
 
 export const NewReportStepper: React.FC = () => {
   const navigate = useNavigate();
+  const { user, loginAsDemo } = useAuth();
   const isOnline = useOnlineStatus();
   const { refreshPendingCount } = useSyncStore();
   const { latitude, longitude, accuracy, loading: geoLoading, error: geoError, retryLocation, setManualCoordinates } = useGeolocation(true);
@@ -224,8 +227,8 @@ export const NewReportStepper: React.FC = () => {
       id: `rep-${Date.now()}`,
       animal_id: selectedAnimalId,
       animal: selectedAnimal,
-      reported_by: 'farmer-demo-001',
-      reporter_name: 'Ramesh Patel',
+      reported_by: user?.id || 'farmer-demo-001',
+      reporter_name: user?.name || 'Ramesh Patel (Farmer)',
       symptoms: selectedSymptoms,
       affected_count: Number(affectedCount),
       death_count: Number(deathCount),
@@ -361,6 +364,16 @@ export const NewReportStepper: React.FC = () => {
 
 
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
+            <button
+              onClick={() => {
+                loginAsDemo('VETERINARIAN');
+                navigate(`/veterinarian/cases/${submittedReport.id}`);
+              }}
+              className="flex-1 py-3 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-700 hover:to-amber-800 text-white rounded-xl font-bold text-sm shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+            >
+              <Stethoscope className="w-4 h-4 text-emerald-300" />
+              ⚡ View in Vet Demo Portal
+            </button>
             <button
               onClick={() => navigate('/farmer/dashboard')}
               className="flex-1 py-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-sm transition-all"

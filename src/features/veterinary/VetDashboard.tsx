@@ -235,7 +235,15 @@ export const VetDashboard: React.FC = () => {
                     #{report.id.slice(-6)}
                   </td>
                   <td className="py-3 px-4 font-bold text-slate-800">
-                    {report.animal?.species || 'Livestock'} ({report.animal?.animal_identifier || 'Animal'})
+                    <div>{report.animal?.species || 'Livestock'} ({report.animal?.animal_identifier || 'Animal'})</div>
+                    <div className="text-[10px] font-semibold text-slate-500 flex items-center gap-1 mt-0.5">
+                      <span>By: {report.reporter_name || 'Farmer'}</span>
+                      {(report.reported_by === 'farmer-demo-001' || report.reporter_name?.includes('Ramesh')) && (
+                        <span className="bg-amber-100 text-amber-900 px-1.5 py-0.5 rounded font-extrabold text-[9px] uppercase tracking-wider border border-amber-300">
+                          🌾 Demo Farmer
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-3 px-4 text-slate-600 max-w-xs truncate">
                     {report.symptoms.join(', ')}

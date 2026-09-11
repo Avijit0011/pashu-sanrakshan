@@ -31,7 +31,7 @@ const SPECIES_EMOJI: Record<string, string> = {
 };
 
 export const FarmerDashboard: React.FC = () => {
-  const { user } = useAuth();
+  const { user, loginAsDemo } = useAuth();
   const navigate = useNavigate();
   const { pendingCount, isSyncing, syncNow } = useSyncStore();
 
@@ -382,6 +382,17 @@ export const FarmerDashboard: React.FC = () => {
 
                 <div className="flex items-center justify-between sm:justify-end gap-3 pt-2 sm:pt-0">
                   <StatusBadge status={report.status} />
+                  <button
+                    onClick={() => {
+                      loginAsDemo('VETERINARIAN');
+                      navigate(`/veterinarian/cases/${report.id}`);
+                    }}
+                    title="View report in Vet Demo Portal"
+                    className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-[11px] font-bold transition-all flex items-center gap-1 shadow-sm"
+                  >
+                    <Stethoscope className="w-3.5 h-3.5 text-amber-700" />
+                    Vet View
+                  </button>
                   <ChevronRight className="w-5 h-5 text-slate-300" />
                 </div>
               </div>

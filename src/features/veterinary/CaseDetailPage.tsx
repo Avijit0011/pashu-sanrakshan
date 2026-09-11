@@ -74,15 +74,33 @@ export const CaseDetailPage: React.FC = () => {
       if (!id) return;
       setLoading(true);
       try {
-        const res = await api.get(`/cases/${id}`);
+        let res;
+        try {
+          res = await api.get(`/cases/${id}`);
+        } catch (e) {
+          const repId = id.replace(/^case-/, '');
+          res = await api.get(`/reports/${repId}`);
+        }
+
         if (res.data) {
-          setReport(res.data.report || res.data);
-          setVetCase(res.data);
+          const reportObj = res.data.report || res.data;
+          setReport(reportObj);
+          setVetCase(res.data.id ? res.data : {
+            id: `case-${reportObj.id}`,
+            report_id: reportObj.id,
+            report: reportObj,
+            status: reportObj.status,
+            created_at: reportObj.created_at,
+            updated_at: reportObj.created_at,
+            events: res.data.events || []
+          });
           setEvents(res.data.events || []);
         }
       } catch (err) {
         const offlineReps = await db.offlineReports.toArray();
-        const found = offlineReps.find((r) => r.id === id || r.local_id === id);
+        const found = offlineReps.find(
+          (r) => r.id === id || r.local_id === id || id === `case-${r.id}` || id === `case-${r.local_id}` || r.id === id.replace(/^case-/, '')
+        );
         if (found) {
           setReport(found as DiseaseReport);
           setVetCase({
@@ -156,11 +174,29 @@ export const CaseDetailPage: React.FC = () => {
         await api.patch(`/cases/${id}`, { status: newStatus, observation: notes });
       }
 
+      // Sync status to Dexie if report exists locally
+      try {
+        if (report?.id) {
+          await db.offlineReports.update(report.id, { status: newStatus });
+        }
+      } catch (e) {
+        // ignore
+      }
+
       setReport((prev) => (prev ? { ...prev, status: newStatus } : null));
       setEvents((prev) => [newEvent, ...prev]);
       setActionSuccess(`Workflow updated: ${String(newStatus).replace(/_/g, ' ')}!`);
       setActiveModal(null);
     } catch (err) {
+      // Sync status to Dexie if report exists locally
+      try {
+        if (report?.id) {
+          await db.offlineReports.update(report.id, { status: newStatus });
+        }
+      } catch (e) {
+        // ignore
+      }
+
       setReport((prev) => (prev ? { ...prev, status: newStatus } : null));
       setEvents((prev) => [newEvent, ...prev]);
       setActionSuccess(`Workflow updated to ${String(newStatus).replace(/_/g, ' ')}!`);
